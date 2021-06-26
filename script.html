@@ -1,0 +1,398 @@
+<script>
+	$(document).ready(function() {
+       
+       $(document).keypress(function (e) {
+          var key = e.which;
+          if(key == 13)  // the enter key code
+           {
+             $('#graph-button').click();
+             return false;  
+           }
+       }); 
+       
+       $('#f').html("\\(f(x) = \\)");
+       
+       //var inter = [$('#xmin').val(),$('#xmax').val(),$('#xscale').val(),$('#ymin').val(),$('#ymax').val(),$('#yscale').val()];
+       
+       $('#graph-button').click(function(){   
+           
+           generateGraph();
+        });
+       
+       $("#color-toggle").change(function(){
+   
+           generateGraph();
+       });
+       
+      function generateGraph(){
+        
+        var colors = ['#3F4591', '#129649','#CC00CC','#ce3b21','#ed9025','#CCCC00','#FF6666','#808080','#202020','#00CCCC','#FF007F'];
+           $('#alert').hide(); // hide previous alert messages (if any) 
+           
+           var multi = false;
+           
+           if($("#color-toggle").is(':checked')){   multi = true;  }
+           
+           var numPieces = $('#eq').val().toString().split(",").length;
+           
+           // add more random colors to colors array if needed
+           if(numPieces > colors.length){
+              
+              for(var b = 0; b = numPieces-colors.length; b++){
+                  
+                  colors.push(getRandomColor());
+              
+              }
+           
+           }
+           
+           // don't try to remove other letters besides x.  Need them for functions like abs(x)
+           var func = $('#eq').val().toString().replace(/['"]+/g, '');
+           $('#eq').val(func);
+           draw(func,true,"plot-dots",multi,colors);  
+           draw(func,false,"plot-no-dots",multi,colors); 
+           makeTable(func,-10,10,"table",multi,colors);
+           
+           $('#table').hide();
+           
+           if($("#dotSlider").is(':checked')){
+               $('#plot-dots').show();
+               $('#plot-no-dots').hide();
+           }
+           else {
+               $('#plot-dots').hide();
+               $('#plot-no-dots').show();
+            }
+            
+            
+            if($("#tableSlider").is(':checked')){
+               $('#table').show();
+           }
+           else {
+               $('#table').hide();
+            }
+      
+      }
+    
+    $('#dotSlider').prop('checked', true);
+    $("#dot-button").click(function(){
+        
+        if($('#dotSlider').is(':checked')){
+            $('#plot-dots').hide();
+            $('#plot-no-dots').show();
+            $(this).val('Show Dots');
+            $('#dotSlider').prop('checked', false);
+            
+        } else {
+            $('#plot-dots').show();
+            $('#plot-no-dots').hide();
+            $(this).val('Hide Dots');
+            $('#dotSlider').prop('checked', true);
+        }
+    });
+    
+    $('#tableSlider').prop('checked', false);
+    $("#table-button").click(function(){
+        
+        if($('#tableSlider').is(':checked')){
+            $('#table').hide();
+            $(this).val('Show Table');
+            $('#tableSlider').prop('checked', false);
+            
+        } else {
+            $('#table').show();
+            $(this).val('Hide Table');
+            $('#tableSlider').prop('checked', true);
+        }
+    });
+    
+    
+    renderMathInElement(document.body);
+    //MathJax.Hub.queue.Push(["Typeset",MathJax.Hub,"f"]);
+	});
+      
+    function draw(expression,dotBoolean,plot,multicolor,colors) {
+    
+    try {
+
+      var data = [];
+      
+      var funcs;
+      
+      // check for multiple functions separated by commas
+      if(expression.indexOf(',') !== -1){
+        
+        // split the list of functions into multiple pieces
+        funcs = expression.split(",");
+        
+      } else{
+        
+        funcs = [expression];
+      
+      }
+      
+      for(var k = 0; k < funcs.length; k++){
+         
+         var col;
+         
+         if(multicolor){ col = colors[k]; }
+         else{ col = "#3F4591"; }
+         
+         // compile the expression once
+         var expr = math.compile(funcs[k]);
+         
+         // evaluate the expression repeatedly for different values of x
+      // for some reason, using an increment of 0.1 makes it so that the "pretty points" no longer work - needed for 1/x
+      var xValues = math.range(-11, 11, 0.25).toArray();
+      const yValues = xValues.map(function (x) {
+        return expr.eval({x: x});
+      })
+      
+      var xValues2 = [];
+      var yValues2 = []
+      for(var i = 0; i < xValues.length; i ++){         
+         var yvalue = expr.eval({x: xValues[i]});
+
+            // creates the "pretty points" to graph points at integer y-values
+            if(Number.isInteger(yvalue) && Number.isInteger(xValues[i])){        
+               xValues2.push(xValues[i]);
+               yValues2.push(yvalue);        
+            }          
+      }         
+       
+      // render the function using plotly
+      var trace1 = {
+        x: xValues,
+        y: yValues,
+        type: 'scatter',
+        mode: 'lines',        
+        line: {
+          color: col,
+          width: 2
+        },
+        name:"",
+      };   
+      
+      if(dotBoolean){
+      
+      // render the "pretty points" using plotly
+      var trace2 = {
+        x: xValues2,
+        y: yValues2,
+        type: 'scatter',
+        mode: 'markers',
+        marker: {
+          color: col,
+          size: 8
+        },
+        hoverinfo:'none'
+      };
+      
+      }
+      
+      var axis_template ={
+        showgrid: true,
+        zeroline: true,
+        nticks: 23,
+        range: [-11,11], 
+        gridcolor: '#bdbdbd', //grid color
+        gridwidth: 1.2, //grid width
+        zerolinecolor: 'black', // axes color
+        zerolinewidth: 1.5, // axes widths
+        showticklabels:false
+      };        
+      
+      // make grid smaller for mobile
+      var gridsize;
+      var indent;
+      // gridsize= Math.min(.95*window.innerWidth,550);
+      
+      if(window.innerWidth > 601){
+         gridsize = 550;
+         indent = 20;
+      }else{
+         gridsize = 350;
+         indent = 0;
+      }
+      
+      var xTickMarkLabels =   {
+        x: [-10.1,-9.1,-8.1,-7.1,-6.1,-5.1,-4.1,-3.1,-2.1,-1.1,0,1,2,3,4,5,6,7,8,9,10],
+        y: [-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1],
+        mode: 'text',
+        text:[-10,-9,-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10],
+        textposition:"bottom",
+        textfont: {
+          size:13,
+        },
+        hoverinfo:'none'
+      };   
+      
+      var yTickMarkLabels =   {
+        y: [-10.1,-9.1,-8.1,-7.1,-6.1,-5.1,-4.1,-3.1,-2.1,-1.1,0,1,2,3,4,5,6,7,8,9,10],
+        x: [-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1],
+        mode: 'text',
+        text:[-10,-9,-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10],
+        textposition:"left",
+        textfont: {
+          size:13,
+        },
+        hoverinfo:'none'
+      };
+      
+      var layout = {
+        xaxis:axis_template,
+        yaxis:axis_template,
+        showlegend: false,
+        width: gridsize,
+        height: gridsize,
+        hovermode: 'closest',   
+        font:{size: 18},
+        margin: {l: indent,  r: 30, t: 20}
+      };
+      
+      layout.annotations= [
+      {
+         x: 0,
+         y: 11,
+         showarrow: true,
+         arrowsize:2,
+         arrowwidth:1,
+         arrowhead:3,
+         ax: 0,
+         ay: 35
+       },
+       {
+         x: 0,
+         y: -11,
+         showarrow: true,
+         arrowsize:2,
+         arrowwidth:1,
+         arrowhead:3,
+         ax: 0,
+         ay: -35
+       },
+       {
+         x: 11,
+         y: 0,
+         showarrow: true,
+         arrowsize:2,
+         arrowwidth:1,
+         arrowhead:3,
+         ax: -35,
+         ay: 0
+       },
+       {
+         x: -11,
+         y: 0,
+         showarrow: true,
+         arrowsize:2,
+         arrowwidth:1,
+         arrowhead:3,
+         ax: 35,
+         ay: 0
+       }
+
+     ];
+      
+      if(dotBoolean){
+        data.push(trace1,trace2,xTickMarkLabels,yTickMarkLabels);
+      }
+      else{
+         data.push(trace1,xTickMarkLabels,yTickMarkLabels);
+      }
+      
+      }
+      
+      Plotly.newPlot(plot, data, layout,{displayModeBar: false});
+    }
+    catch (err) {
+      console.error(err)
+      $("#alert").html("Please enter an appropriate function using x as the input variable");
+      $("#alert").show();
+    }
+  }
+  
+  function getRandomColor() {
+  var letters = '0123456789ABCDEF';
+  var color = '#';
+  for (var i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
+}
+  
+  function makeTable(expression,xMin,xMax,tableID,multicolor,colors){
+      
+      // for some reason the xMax needs to be increased by 1 in order to show it
+      xMax++;
+      
+      try {
+      
+      var str = "<table border='1' class='table-centered-data'><tr><td>\\(x\\)</td>";
+      var xValues = math.range(xMin, xMax, 1).toArray();
+      
+      // create the row of x values
+      for(var i = 0; i < xValues.length; i ++){         
+       
+        str += "<td>\\("+xValues[i]+"\\)</td>";
+       
+      } 
+      
+      var funcs;
+      
+      // check for multiple functions separated by commas
+      if(expression.indexOf(',') !== -1){
+        
+        // split the list of functions into multiple pieces
+        funcs = expression.split(",");
+        
+      } else{
+        
+        funcs = [expression];
+      
+      }
+      
+      for(var k = 0; k < funcs.length; k++){
+      
+      var col;
+      if(multicolor){ col = colors[k]; }
+         else{ col = "#3F4591"; }
+      
+      // compile the expression once
+      var expr = math.compile(funcs[k]);
+      
+      // evaluate the expression repeatedly for different values of x
+      
+      const yValues = xValues.map(function (x) {
+        return round(expr.eval({x: x})*100)/100;
+      })
+      
+      
+      str += "</tr><tr><td> <span style='color:"+col+"'> \\(f_{"+(k+1)+"}(x)\\)</span></td>";
+      var yVal = "";
+      // create a row of y values
+      for(var i = 0; i < yValues.length; i ++){         
+        
+        if(!isNaN(yValues[i])){ yVal = "\\("+yValues[i]+"\\)"; }
+        else{ yVal = "ERR";};
+        
+        str += "<td>"+yVal+"</td>";
+       
+      }
+      
+      }
+      
+      str += "</tr></table>";
+      $('#'+tableID).html(str);
+      renderMathInElement(document.body);
+       
+    }
+    catch(err) {
+      console.error(err);
+      alert(err);
+      //alert("Please enter an appropriate function using x as the input variable");
+    }   
+  
+  }
+    
+</script>
