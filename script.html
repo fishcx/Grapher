@@ -15,7 +15,7 @@
        //var inter = [$('#xmin').val(),$('#xmax').val(),$('#xscale').val(),$('#ymin').val(),$('#ymax').val(),$('#yscale').val()];
        
        $('#graph-button').click(function(){   
-           
+
            generateGraph();
         });
        
@@ -139,7 +139,7 @@
          else{ col = "#3F4591"; }
          
          // compile the expression once
-         var expr = math.compile(funcs[k]);
+         var expr = math.compile(translateInput(funcs[k]));
          
          // evaluate the expression repeatedly for different values of x
       // for some reason, using an increment of 0.1 makes it so that the "pretty points" no longer work - needed for 1/x
@@ -320,7 +320,19 @@
   }
   return color;
 }
+
+// helper function to allow for certain symbols  
+function translateInput(exp){
+
+  var output = exp;
   
+  // Absolute value |x| 
+  if(exp.indexOf("|") >= 0){
+    output = exp.replace("|","abs(").replace("|",")");
+  }
+  return output;
+}
+
   function makeTable(expression,xMin,xMax,tableID,multicolor,colors){
       
       // for some reason the xMax needs to be increased by 1 in order to show it
@@ -359,7 +371,7 @@
          else{ col = "#3F4591"; }
       
       // compile the expression once
-      var expr = math.compile(funcs[k]);
+      var expr = math.compile(translateInput(funcs[k]));
       
       // evaluate the expression repeatedly for different values of x
       
