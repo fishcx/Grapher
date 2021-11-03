@@ -114,81 +114,6 @@
     function draw(expression,dotBoolean,plot,multicolor,colors) {
     
     try {
-
-      var data = [];
-      
-      var funcs;
-      
-      // check for multiple functions separated by commas
-      if(expression.indexOf(',') !== -1){
-        
-        // split the list of functions into multiple pieces
-        funcs = expression.split(",");
-        
-      } else{
-        
-        funcs = [expression];
-      
-      }
-      
-      for(var k = 0; k < funcs.length; k++){
-         
-         var col;
-         
-         if(multicolor){ col = colors[k]; }
-         else{ col = "#3F4591"; }
-         
-         // compile the expression once
-         var expr = math.compile(translateInput(funcs[k]));
-         
-         // evaluate the expression repeatedly for different values of x
-      // for some reason, using an increment of 0.1 makes it so that the "pretty points" no longer work - needed for 1/x
-      var xValues = math.range(-11, 11, 0.25).toArray();
-      const yValues = xValues.map(function (x) {
-        return expr.eval({x: x});
-      })
-      
-      var xValues2 = [];
-      var yValues2 = []
-      for(var i = 0; i < xValues.length; i ++){         
-         var yvalue = expr.eval({x: xValues[i]});
-
-            // creates the "pretty points" to graph points at integer y-values
-            if(Number.isInteger(yvalue) && Number.isInteger(xValues[i])){        
-               xValues2.push(xValues[i]);
-               yValues2.push(yvalue);        
-            }          
-      }         
-       
-      // render the function using plotly
-      var trace1 = {
-        x: xValues,
-        y: yValues,
-        type: 'scatter',
-        mode: 'lines',        
-        line: {
-          color: col,
-          width: 2
-        },
-        name:"",
-      };   
-      
-      if(dotBoolean){
-      
-      // render the "pretty points" using plotly
-      var trace2 = {
-        x: xValues2,
-        y: yValues2,
-        type: 'scatter',
-        mode: 'markers',
-        marker: {
-          color: col,
-          size: 8
-        },
-        hoverinfo:'none'
-      };
-      
-      }
       
       var axis_template ={
         showgrid: true,
@@ -291,9 +216,96 @@
          ax: 35,
          ay: 0
        }
+    ];
 
-     ];
+      var data = [];
       
+      var funcs;
+      
+      // check for multiple functions separated by commas
+      if(expression.indexOf(',') !== -1){
+        
+        // split the list of functions into multiple pieces
+        funcs = expression.split(",");
+        
+      } else{
+        
+        funcs = [expression];
+      
+      }
+      
+      for(var k = 0; k < funcs.length; k++){
+         
+         var col;
+         
+         if(multicolor){ col = colors[k]; }
+         else{ col = "#3F4591"; }
+         
+         // compile the expression once
+         var expr = math.compile(translateInput(funcs[k]));
+         
+         // evaluate the expression repeatedly for different values of x
+      // for some reason, using an increment of 0.1 makes it so that the "pretty points" no longer work - needed for 1/x
+      var xValues = math.range(-11, 11, 0.25).toArray();
+      const yValues = xValues.map(function (x) {
+        return expr.eval({x: x});
+      })
+      
+      var xValues2 = [];
+      var yValues2 = []
+      for(var i = 0; i < xValues.length; i ++){         
+         var yvalue = expr.eval({x: xValues[i]});
+
+            // creates the "pretty points" to graph points at integer y-values
+            if(Number.isInteger(yvalue) && Number.isInteger(xValues[i])){        
+               xValues2.push(xValues[i]);
+               yValues2.push(yvalue);        
+            }          
+      }         
+       
+      // render the function using plotly
+      var trace1 = {
+        x: xValues,
+        y: yValues,
+        type: 'scatter',
+        mode: 'lines',        
+        line: {
+          color: col,
+          width: 2
+        },
+        name:"",
+      };   
+      
+      // create the arrows on the ends
+      var test1 = {
+         x: -5,
+         y: 5,
+         showarrow: true,
+         arrowsize:2,
+         arrowwidth:1,
+         arrowhead:3,
+         ax: 35,
+         ay: 0
+       };
+      layout.annotations.push(test1);
+
+      if(dotBoolean){
+      
+      // render the "pretty points" using plotly
+      var trace2 = {
+        x: xValues2,
+        y: yValues2,
+        type: 'scatter',
+        mode: 'markers',
+        marker: {
+          color: col,
+          size: 8
+        },
+        hoverinfo:'none'
+      };
+      
+      }
+
       if(dotBoolean){
         data.push(trace1,trace2,xTickMarkLabels,yTickMarkLabels);
       }
